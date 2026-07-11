@@ -6,7 +6,8 @@ Reads ``analyse_schema_final.csv`` (expected next to this file) and writes
 five figures, each as PNG/SVG/PDF, into ``figures/`` (with on-figure titles)
 and ``figures/no_title/`` (same figures without titles, for slides or captions):
 
-    fig1_per_study_split    sex split per study, sorted by % male
+    fig1_per_study_split    sex split per study, sorted by % male (landscape)
+    fig1_..._portrait       the same, as a tall portrait chart
     fig3_sex_handling       how sex is used across the ML pipeline
     fig5_deviation_boxplot  % female per split, one study traced across splits
     fig6_reporting_by_split how many studies report sex numbers per split
@@ -261,6 +262,33 @@ def fig_per_study_split(df):
     _save(fig, "fig1_per_study_split.png")
 
 
+def fig_per_study_split_portrait(df):
+    """Fig 1 (portrait) — horizontal M/F bars per study, most male at top."""
+    data = (df.dropna(subset=["pct_male"])
+              .sort_values("pct_male")
+              .reset_index(drop=True))
+    y = np.arange(len(data))
+
+    fig, ax = plt.subplots(figsize=(9, 0.34 * len(data) + 1.2))
+    ax.barh(y, data["pct_male"], color=COL_MALE, label="Male")
+    ax.barh(y, data["pct_female"], left=data["pct_male"], color=COL_FEMALE, label="Female")
+    ax.axvline(50, color="black", lw=1.2, ls="--")
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(data["short"], fontsize=7)
+    ax.set_ylim(-0.6, len(data) - 0.4)
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("Share of cohort (%)")
+    _title(ax, f"Sex distribution per study (total cohort), n={len(data)} lung-cancer ML studies")
+
+    # % male printed inside each male segment.
+    for yi, pct in zip(y, data["pct_male"]):
+        ax.text(pct, yi, f" {pct:.0f}", va="center",
+                ha="left" if pct < 88 else "right", fontsize=6.5, color="white")
+    ax.legend(loc="lower right", framealpha=0.9)
+    _save(fig, "fig1_per_study_split_portrait.png")
+
+
 def fig_sex_handling(df):
     """Fig 3 — count of studies using sex at each stage of the ML pipeline."""
     n = len(df)
@@ -400,6 +428,7 @@ def render_all(df):
     """Draw and save every figure into the current OUT_DIR / SHOW_TITLES state."""
     os.makedirs(OUT_DIR, exist_ok=True)
     fig_per_study_split(df)
+    fig_per_study_split_portrait(df)
     counts = fig_sex_handling(df)
     fig_deviation_boxplot(df)
     fig_reporting_by_split(df)
