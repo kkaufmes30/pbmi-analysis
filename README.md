@@ -18,22 +18,35 @@ One row per included lung-cancer ML study, with the sex distribution (counts and
 percentages) for the total cohort and each data split, plus flags for how sex was
 used in the model.
 
-| Column | Meaning |
-|--------|---------|
+| Column (CSV header) | Meaning |
+|---------------------|---------|
 | `paper_id` | DOI of the study |
 | `cancer_type` | `L` = lung |
 | `task` | `D` = diagnosis, `P` = prognosis |
-| `total_n` | total cohort size |
-| `*_abs_mf` | `"male;female"` counts (total / training / validation / test / external) |
-| `*_pct_mf` | `"male;female"` percentages (total / training / validation / test / external) |
-| `sex_specific_model` | `1` = separate male/female models trained |
-| `sex_in_dev` | `1` = sex used in model development |
-| `sex_in_eval` | `1` = sex used in model evaluation |
+| `total_chort_absolut_number` | total cohort size (N) |
+| `total_cohort_absolut_number_male_female` | total cohort counts, `"male;female"` |
+| `total_cohort_gender_distribution_percent_male_female` | total cohort percentages, `"male;female"` |
+| `training_data_gender_absolute_number_male_female` | training-set counts, `"male;female"` |
+| `training_data_gender_distribution_percent_male_female` | training-set percentages, `"male;female"` |
+| `validation_data_gender_distribution_absolute_number` | validation-set counts, `"male;female"` |
+| `validation_data_gender_distribution_percent_male_female` | validation-set percentages, `"male;female"` |
+| `test_data_gender_distribution_absolute_number` | test-set counts, `"male;female"` |
+| `test_data_gender_distribution_percent_male_female` | test-set percentages, `"male;female"` |
+| `external_test_data_gender_distribution_absolute_number` | external-test counts, `"male;female"` |
+| `external_test_data_gender_distribution_percent_male_female` | external-test percentages, `"male;female"` |
+| `sex_specific_trained_model` | `1` = separate male/female models trained |
+| `sex_in_model_development` | `1` = sex used in model development |
+| `sex_in_model_evaluation` | `1` = sex used in model evaluation |
 | `notes` | free-text extraction notes |
 
 > **Formatting note:** the CSV uses European conventions — `;` as the field
 > separator and a decimal comma — so it is read with `encoding="cp1252"`. Cells
-> like `"108;77"` hold a male/female pair.
+> like `"108;77"` hold a male/female pair. (Column spellings such as
+> `total_chort_absolut_number` are kept exactly as in the source file.)
+>
+> The analysis script reads the file positionally (`header=None`) and renames
+> these columns to shorter internal names (e.g. `total_abs_mf`, `total_pct_mf`);
+> see the `COLUMNS` list in `generate_figures.py`.
 
 ## Requirements
 
