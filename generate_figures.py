@@ -443,9 +443,11 @@ def main():
     print("=== reconciliation flags ===")
     for study, message in reconciliation_warnings(df):
         print(" ", study, "->", message)
-    print(f"\nN studies: {len(df)} | with usable %male: {df['pct_male'].notna().sum()}")
-    print("median %male:", round(df["pct_male"].median(), 1),
-          "| mean:", round(df["pct_male"].mean(), 1))
+    fem = df["pct_female"].dropna()
+    print(f"\nN studies: {len(df)} | with usable sex data: {len(fem)}")
+    print(f"Total-cohort female share: median {fem.median():.1f}% "
+          f"(range {fem.min():.1f}-{fem.max():.1f}; "
+          f"mean {fem.mean():.1f}%, SD {fem.std():.1f})")
 
     plt.rcParams.update(PLOT_STYLE)
     base_dir = OUT_DIR
