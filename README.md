@@ -1,8 +1,8 @@
-# PBMI: Sex analysis of lung-cancer ML datasets
+# PBMI: Sex analysis of lung-cancer ML/AI datasets
 
 Data and figure-generation code for a systematic review analysing how sex
 is distributed and reported across the datasets used in lung-cancer
-machine-learning studies (n = 34).
+machine-learning and artificial intelligence studies (n = 34).
 
 ## Repository contents
 
