@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 # Configuration
 # ---------------------------------------------------------------------------
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, "analyse_schema_final.csv")
+SRC = os.path.join(HERE, "analyse_schema.csv")
 OUT_DIR = os.path.join(HERE, "figures")
 
 # Column order of the raw CSV (semicolon-separated, cp1252-encoded, with
@@ -61,6 +61,55 @@ SPLITS = [
     ("Test", "test_abs_mf", "test_pct_mf"),
     ("External", "ext_abs_mf", "ext_pct_mf"),
 ]
+
+# Human-readable split names shown on figure axes; internal keys stay as in SPLITS.
+DISPLAY_LABELS = {
+    "Total": "Overall",
+    "Training": "Training",
+    "Validation": "Validation",
+    "Test": "Internal test",
+    "External": "External validation",
+}
+
+# Author-year label per study (keyed by DOI as it appears after the URL prefix
+# is stripped). Used for the per-study figure instead of raw DOIs; studies not
+# listed here fall back to their DOI.
+STUDY_LABELS = {
+    "10.1016/j.pathol.2022.11.009": "Aksoy 2023",
+    "10.1016/j.intimp.2025.115259": "Liu 2025",
+    "10.1016/j.radonc.2021.10.022": "Kim 2021",
+    "10.1038/s41598-024-51630-6": "Kim 2024",
+    "10.1186/s12885-024-13190-w": "Koyama 2024",
+    "10.1055/a-2161-9369": "Zhu 2024",
+    "10.1109/EMBC58623.2025.11254399": "Favali 2025",
+    "10.1016/j.crad.2025.106915": "Peng 2025",
+    "10.7150/thno.48027": "Tian 2021",
+    "10.1002/jcsm.70021": "Kunnemann 2025",
+    "10.7554/eLife.80547": "Lian 2022",
+    "10.3390/biom15081081": "Hu 2025",
+    "10.1200/CCI.24.00133": "Sako 2024",
+    "10.1186/s12885-025-13562-w": "Chen 2025",
+    "10.1245/s10434-025-18747-y": "Liu 2026",
+    "10.3389/fpubh.2022.1019168": "Cui 2022",
+    "10.3390/arm91040025": "Tran 2023",
+    "10.1001/jamanetworkopen.2025.55759": "Sako 2026",
+    "10.1016/S2589-7500(23)00082-1": "Saad 2023",
+    "10.1016/j.clon.2023.03.003": "Jamshidi 2023",
+    "10.1109/EMBC58623.2025.11254401": "Giangregorio 2025",
+    "10.1038/s41598-023-45671-6": "Simon 2023",
+    "10.1177/10732748231167958": "Zhou 2023",
+    "10.1371/journal.pone.0276703": "Nemlander 2022",
+    "10.1245/s10434-022-12516-x": "Shimada 2022",
+    "10.3390/medicina57020099": "Wang 2021",
+    "10.1177/15330338221136724": "Ye 2022",
+    "10.1111/1759-7714.14140": "Liu 2021",
+    "10.1186/s12885-024-13268-5": "Ni 2025",
+    "10.1038/s41467-024-53851-9": "Karimzadeh 2024",
+    "10.1007/s12149-024-01936-2": "Lue 2024",
+    "10.3389/fimmu.2024.1446511": "Zhan 2024",
+    "10.1111/1759-7714.15448": "Gao 2024",
+    "10.1002/cam4.4719": "Zhu 2022",
+}
 
 # In the per-split boxplot, a point is highlighted when its female share differs
 # from that study's own total cohort by more than this many percentage points.
@@ -156,6 +205,7 @@ def load_studies():
 def add_derived_columns(df):
     """Add the helper columns the figures rely on."""
     df["short"] = df["paper_id"].str.replace(r"https?://dx.doi.org/", "", regex=True)
+    df["label"] = df["short"].map(STUDY_LABELS).fillna(df["short"])
 
     df["pct_male"] = df.apply(_total_pct_male, axis=1)
     df["pct_female"] = 100 - df["pct_male"]
@@ -235,47 +285,20 @@ def _title(ax, text, **kwargs):
         ax.set_title(text, **kwargs)
 
 
-def fig_per_study_split(df):
-    """Fig 1 — vertical M/F bars per study (landscape), sorted most to least male."""
-    data = (df.dropna(subset=["pct_male"])
-              .sort_values("pct_male", ascending=False)
-              .reset_index(drop=True))
-    x = np.arange(len(data))
-
-    fig, ax = plt.subplots(figsize=(13, 5.5))
-    ax.bar(x, data["pct_male"], color=COL_MALE, label="Male")
-    ax.bar(x, data["pct_female"], bottom=data["pct_male"], color=COL_FEMALE, label="Female")
-    ax.axhline(50, color="black", lw=1.2, ls="--")
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(data["short"], rotation=90, fontsize=6.5)
-    ax.set_xlim(-0.6, len(data) - 0.4)
-    ax.set_ylim(0, 100)
-    ax.set_ylabel("Share of cohort (%)")
-    _title(ax, f"Sex distribution per study (total cohort), n={len(data)} lung-cancer ML studies")
-
-    # % male printed inside each male segment, read bottom-to-top.
-    for xi, pct in zip(x, data["pct_male"]):
-        ax.text(xi, pct / 2, f"{pct:.0f}", ha="center", va="center",
-                rotation=90, fontsize=6, color="white")
-    ax.legend(loc="center left", bbox_to_anchor=(1.005, 0.5), framealpha=0.9)
-    _save(fig, "fig1_per_study_split.png")
-
-
-def fig_per_study_split_portrait(df):
-    """Fig 1 (portrait) — horizontal M/F bars per study, most male at top."""
+def _per_study_barh(df, width, out_name):
+    """Horizontal stacked M/F bars per study (most male at top), width in inches."""
     data = (df.dropna(subset=["pct_male"])
               .sort_values("pct_male")
               .reset_index(drop=True))
     y = np.arange(len(data))
 
-    fig, ax = plt.subplots(figsize=(9, 0.34 * len(data) + 1.2))
+    fig, ax = plt.subplots(figsize=(width, 0.34 * len(data) + 1.2))
     ax.barh(y, data["pct_male"], color=COL_MALE, label="Male")
     ax.barh(y, data["pct_female"], left=data["pct_male"], color=COL_FEMALE, label="Female")
     ax.axvline(50, color="black", lw=1.2, ls="--")
 
     ax.set_yticks(y)
-    ax.set_yticklabels(data["short"], fontsize=7)
+    ax.set_yticklabels(data["label"], fontsize=8)
     ax.set_ylim(-0.6, len(data) - 0.4)
     ax.set_xlim(0, 100)
     ax.set_xlabel("Share of cohort (%)")
@@ -284,9 +307,19 @@ def fig_per_study_split_portrait(df):
     # % male printed inside each male segment.
     for yi, pct in zip(y, data["pct_male"]):
         ax.text(pct, yi, f" {pct:.0f}", va="center",
-                ha="left" if pct < 88 else "right", fontsize=6.5, color="white")
+                ha="left" if pct < 88 else "right", fontsize=8, color="white")
     ax.legend(loc="lower right", framealpha=0.9)
-    _save(fig, "fig1_per_study_split_portrait.png")
+    _save(fig, out_name)
+
+
+def fig_per_study_split(df):
+    """Fig 1 — horizontal M/F bars per study at full two-column IEEE width (figure*)."""
+    _per_study_barh(df, 7.16, "fig1_per_study_split.png")
+
+
+def fig_per_study_split_portrait(df):
+    """Fig 1 (portrait) — same chart at ~7.1 in width."""
+    _per_study_barh(df, 7.1, "fig1_per_study_split_portrait.png")
 
 
 def fig_sex_handling(df):
@@ -334,9 +367,11 @@ def _split_boxplot(ax, table, labels, series, positions):
                    alpha=0.40, edgecolor="white", linewidth=0.4, zorder=2)
 
     ax.set_xticks(positions)
-    ax.set_xticklabels([f"{label}\n(n={len(v)})" for label, v in zip(labels, series)])
+    ax.set_xticklabels([f"{DISPLAY_LABELS[label]}\n(n={len(v)})"
+                        for label, v in zip(labels, series)], fontsize=8)
     ax.set_ylim(0, 100)
-    ax.set_ylabel("% female in split")
+    ax.set_ylabel("% female in split", fontsize=9)
+    ax.tick_params(axis="y", labelsize=9)
 
 
 def fig_balance_by_split(df):
@@ -346,9 +381,10 @@ def fig_balance_by_split(df):
     series = [table[label].dropna().to_numpy() for label in labels]
     positions = np.arange(1, len(labels) + 1)
 
-    fig, ax = plt.subplots(figsize=(8, 4.6))
+    fig, ax = plt.subplots(figsize=(3.4, 3.4))  # single-column width
     _split_boxplot(ax, table, labels, series, positions)
-    _title(ax, "Sex balance by data split")
+    plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
+    _title(ax, "Sex balance by data split", fontsize=9)
     ax.legend(loc="upper right", fontsize=8, framealpha=0.95)
     _save(fig, "fig7_balance_by_split.png")
 
@@ -403,21 +439,20 @@ def fig_reporting_by_split(df):
     n = len(df)
     x = np.arange(len(labels))
 
-    fig, ax = plt.subplots(figsize=(7.5, 4.4))
+    fig, ax = plt.subplots(figsize=(3.4, 3.4))  # single-column width
     bars = ax.bar(x, counts, color=COL_MALE, width=0.62)
-    ax.axhline(n, color=COL_GREY, ls="--", lw=1)
-    ax.text(len(labels) - 0.6, n, f"all studies (n={n})", va="bottom", ha="right",
-            fontsize=8, color=COL_GREY)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.set_ylim(0, n + 5)
-    ax.set_ylabel("Number of studies")
-    _title(ax, "Studies reporting sex numbers, by data split", pad=12)
+    ax.set_xticklabels([DISPLAY_LABELS[label] for label in labels],
+                       rotation=30, ha="right", fontsize=8)
+    ax.set_ylim(0, n + 4)
+    ax.set_ylabel("Number of studies", fontsize=9)
+    ax.tick_params(axis="y", labelsize=9)
+    _title(ax, "Studies reporting sex numbers, by data split", pad=12, fontsize=9)
     for bar, count in zip(bars, counts):
         ax.text(bar.get_x() + bar.get_width() / 2, count + 0.3,
                 f"{count}\n({100 * count / n:.0f}%)",
-                ha="center", va="bottom", fontsize=9)
+                ha="center", va="bottom", fontsize=8)
     _save(fig, "fig6_reporting_by_split.png")
 
 
