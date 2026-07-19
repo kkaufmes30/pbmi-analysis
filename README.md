@@ -2,7 +2,7 @@
 
 Data and figure-generation code for a systematic review analysing how sex
 is distributed and reported across the datasets used in lung-cancer
-machine-learning and artificial intelligence studies (n = 34).
+machine-learning and artificial intelligence studies (n = 31).
 
 ## Repository contents
 
