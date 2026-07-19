@@ -6,8 +6,7 @@ Reads ``analyse_schema_final.csv`` (expected next to this file) and writes
 five figures, each as PNG/SVG/PDF, into ``figures/`` (with on-figure titles)
 and ``figures/no_title/`` (same figures without titles, for slides or captions):
 
-    fig1_per_study_split    sex split per study, sorted by % male (landscape)
-    fig1_..._portrait       the same, as a tall portrait chart
+    fig1_per_study_split    sex split per study (horizontal bars, two-column width)
     fig3_sex_handling       how sex is used across the ML pipeline
     fig5_deviation_boxplot  % female per split, one study traced across splits
     fig6_reporting_by_split how many studies report sex numbers per split
@@ -75,12 +74,10 @@ DISPLAY_LABELS = {
 # is stripped). Used for the per-study figure instead of raw DOIs; studies not
 # listed here fall back to their DOI.
 STUDY_LABELS = {
-    "10.1016/j.pathol.2022.11.009": "Aksoy 2023",
     "10.1016/j.intimp.2025.115259": "Liu 2025",
     "10.1016/j.radonc.2021.10.022": "Kim 2021",
     "10.1038/s41598-024-51630-6": "Kim 2024",
     "10.1186/s12885-024-13190-w": "Koyama 2024",
-    "10.1055/a-2161-9369": "Zhu 2024",
     "10.1109/EMBC58623.2025.11254399": "Favali 2025",
     "10.1016/j.crad.2025.106915": "Peng 2025",
     "10.7150/thno.48027": "Tian 2021",
@@ -94,7 +91,6 @@ STUDY_LABELS = {
     "10.3390/arm91040025": "Tran 2023",
     "10.1001/jamanetworkopen.2025.55759": "Sako 2026",
     "10.1016/S2589-7500(23)00082-1": "Saad 2023",
-    "10.1016/j.clon.2023.03.003": "Jamshidi 2023",
     "10.1109/EMBC58623.2025.11254401": "Giangregorio 2025",
     "10.1038/s41598-023-45671-6": "Simon 2023",
     "10.1177/10732748231167958": "Zhou 2023",
@@ -285,41 +281,31 @@ def _title(ax, text, **kwargs):
         ax.set_title(text, **kwargs)
 
 
-def _per_study_barh(df, width, out_name):
-    """Horizontal stacked M/F bars per study (most male at top), width in inches."""
+def fig_per_study_split(df):
+    """Fig 1 — horizontal M/F bars per study, full two-column IEEE width (figure*)."""
     data = (df.dropna(subset=["pct_male"])
               .sort_values("pct_male")
               .reset_index(drop=True))
     y = np.arange(len(data))
 
-    fig, ax = plt.subplots(figsize=(width, 0.34 * len(data) + 1.2))
+    fig, ax = plt.subplots(figsize=(13, 7.5))  # wide landscape aspect (~1.7:1)
     ax.barh(y, data["pct_male"], color=COL_MALE, label="Male")
     ax.barh(y, data["pct_female"], left=data["pct_male"], color=COL_FEMALE, label="Female")
     ax.axvline(50, color="black", lw=1.2, ls="--")
 
     ax.set_yticks(y)
-    ax.set_yticklabels(data["label"], fontsize=8)
+    ax.set_yticklabels(data["label"], fontsize=9, color="black")
     ax.set_ylim(-0.6, len(data) - 0.4)
     ax.set_xlim(0, 100)
     ax.set_xlabel("Share of cohort (%)")
     _title(ax, f"Sex distribution per study (total cohort), n={len(data)} lung-cancer ML studies")
 
-    # % male printed inside each male segment.
+    # % male tucked just inside the right end of each male (blue) bar.
     for yi, pct in zip(y, data["pct_male"]):
-        ax.text(pct, yi, f" {pct:.0f}", va="center",
-                ha="left" if pct < 88 else "right", fontsize=8, color="white")
+        ax.text(pct - 1, yi, f"{pct:.0f}", va="center", ha="right",
+                fontsize=8, color="white")
     ax.legend(loc="lower right", framealpha=0.9)
-    _save(fig, out_name)
-
-
-def fig_per_study_split(df):
-    """Fig 1 — horizontal M/F bars per study at full two-column IEEE width (figure*)."""
-    _per_study_barh(df, 7.16, "fig1_per_study_split.png")
-
-
-def fig_per_study_split_portrait(df):
-    """Fig 1 (portrait) — same chart at ~7.1 in width."""
-    _per_study_barh(df, 7.1, "fig1_per_study_split_portrait.png")
+    _save(fig, "fig1_per_study_split.png")
 
 
 def fig_sex_handling(df):
@@ -463,7 +449,6 @@ def render_all(df):
     """Draw and save every figure into the current OUT_DIR / SHOW_TITLES state."""
     os.makedirs(OUT_DIR, exist_ok=True)
     fig_per_study_split(df)
-    fig_per_study_split_portrait(df)
     counts = fig_sex_handling(df)
     fig_deviation_boxplot(df)
     fig_reporting_by_split(df)
