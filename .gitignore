@@ -16,3 +16,7 @@ Thumbs.db
 # Generated vector figures — keep only the PNGs in the repo.
 figures/**/*.pdf
 figures/**/*.svg
+
+# Unused figures (not part of the paper: only fig1, fig6, fig7 are kept)
+figures/**/fig3_sex_handling.*
+figures/**/fig5_deviation_boxplot.*
