@@ -8,13 +8,13 @@ machine-learning and artificial intelligence studies (n = 31).
 
 | File | Description |
 |------|-------------|
-| `analyse_schema_final.csv` | Data extraction table — one row per included study |
+| `analyse_schema.csv` | Data extraction table — one row per included study |
 | `generate_figures.py` | Reads the CSV and renders all figures |
 | `requirements.txt` | Pinned Python dependencies |
 
-## The data (`analyse_schema_final.csv`)
+## The data (`analyse_schema.csv`)
 
-One row per included lung-cancer ML study, with the sex distribution (counts and
+One row per included lung-cancer ML/AI study, with the sex distribution (counts and
 percentages) for the total cohort and each data split, plus flags for how sex was
 used in the model.
 
@@ -37,6 +37,8 @@ used in the model.
 | `sex_specific_trained_model` | `1` = separate male/female models trained |
 | `sex_in_model_development` | `1` = sex used in model development |
 | `sex_in_model_evaluation` | `1` = sex used in model evaluation |
+| `cross_validation` | `1` = cross-validation used in the study |
+| `use_of_sex_and_gender` | coded use of sex/gender (`0` / `1` / `2`) |
 | `notes` | free-text extraction notes |
 
 > **Formatting note:** the CSV uses European conventions — `;` as the field
@@ -76,8 +78,6 @@ total-cohort counts or percentages do not add up.
 | File | Shows |
 |------|-------|
 | `fig1_per_study_split` | Sex split per study (total cohort), sorted by % male |
-| `fig3_sex_handling` | How many studies use sex in development / evaluation / sex-specific models |
-| `fig5_deviation_boxplot` | % female per data split, with one study traced across splits |
 | `fig6_reporting_by_split` | How many studies report sex numbers for each split |
 | `fig7_balance_by_split` | % female per data split (plain boxplot) |
 

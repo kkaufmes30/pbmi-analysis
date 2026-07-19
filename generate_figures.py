@@ -2,7 +2,7 @@
 """Generate the figures for the PBMI systematic review on sex analysis of
 lung-cancer machine-learning datasets.
 
-Reads ``analyse_schema_final.csv`` (expected next to this file) and writes
+Reads ``analyse_schema.csv`` (expected next to this file) and writes
 five figures, each as PNG/SVG/PDF, into ``figures/`` (with on-figure titles)
 and ``figures/no_title/`` (same figures without titles, for slides or captions):
 
@@ -46,7 +46,8 @@ COLUMNS = [
     "val_abs_mf", "val_pct_mf",
     "test_abs_mf", "test_pct_mf",
     "ext_abs_mf", "ext_pct_mf",
-    "sex_specific_model", "sex_in_dev", "sex_in_eval", "notes",
+    "sex_specific_model", "sex_in_dev", "sex_in_eval",
+    "cross_validation", "use_of_sex_and_gender", "notes",
 ]
 
 # The three binary "how was sex handled" flags.
